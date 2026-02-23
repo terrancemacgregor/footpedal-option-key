@@ -1,5 +1,5 @@
 <p align="center">
-  <video src="images/whisperfoot.mp4" width="600" controls></video>
+  <video src="https://github.com/terrancemacgregor/footpedal-option-key/raw/main/images/whisperfoot.mp4" width="600" controls></video>
 </p>
 
 # WhisperFoot
