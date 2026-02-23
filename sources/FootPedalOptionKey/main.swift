@@ -124,16 +124,17 @@ class FootPedalManager {
             return Unmanaged.passUnretained(event)
         }
 
-        // ALWAYS block "b" key (keycode 11) - the pedal hardware sends this
+        guard pedalConnected && isEnabled else {
+            return Unmanaged.passUnretained(event)
+        }
+
+        // Block "b" key (keycode 11) only when pedal is connected and enabled
+        // The pedal hardware sends "b" as its native keystroke
         if type == .keyDown || type == .keyUp {
             let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
             if keyCode == 11 {
                 return nil
             }
-        }
-
-        guard pedalConnected && isEnabled else {
-            return Unmanaged.passUnretained(event)
         }
 
         if isPressed {
