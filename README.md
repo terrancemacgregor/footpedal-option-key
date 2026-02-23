@@ -12,6 +12,12 @@ Many workflows benefit from holding the Option key while performing other action
 
 USB foot pedals are inexpensive (~$19) and widely available, but they typically only send a single keystroke (like "b") rather than acting as a proper modifier key. macOS doesn't natively support remapping arbitrary USB devices to modifier keys, and existing tools like Karabiner-Elements work at the keyboard level, not the USB device level.
 
+<p align="center">
+  <a href="https://www.amazon.com/iKKEGOL-Upgraded-Optical-Computer-Keyboard/dp/B088TQXYX2">
+    <img src="images/footpedal-iKKEGOL.png" alt="iKKEGOL USB Foot Pedal" width="300">
+  </a>
+</p>
+
 There's also a trust issue: keyboard and input device software has access to everything you type. Installing closed-source binaries from third parties means trusting unknown code with your most sensitive data—passwords, messages, credentials. If you're security-conscious, building from auditable source code is the better choice. This project serves as both a working tool and an example of how to build your own input device remapping on macOS.
 
 ## The Solution
