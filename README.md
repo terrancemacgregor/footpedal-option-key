@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="images/whisperpedal-banner.jpg" alt="WhisperFoot — hands-free foot pedal for voice and productivity" width="700">
+  <img src="images/cartoon-banner.gif" alt="WhisperFoot — hands-free foot pedal for voice and productivity" width="700">
 </p>
 
 # WhisperFoot
