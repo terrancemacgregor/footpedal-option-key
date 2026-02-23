@@ -1,5 +1,9 @@
 # FootPedalOptionKey
 
+<p align="center">
+  <img src="images/footpedal-iKKEGOL.png" alt="iKKEGOL USB Foot Pedal" width="400">
+</p>
+
 A macOS utility that transforms a USB foot pedal into an Option (⌥) key, enabling hands-free modifier key access for accessibility, productivity, and creative workflows.
 
 ## The Problem
@@ -8,6 +12,8 @@ Many workflows benefit from holding the Option key while performing other action
 
 USB foot pedals are inexpensive (~$15) and widely available, but they typically only send a single keystroke (like "b") rather than acting as a proper modifier key. macOS doesn't natively support remapping arbitrary USB devices to modifier keys, and existing tools like Karabiner-Elements work at the keyboard level, not the USB device level.
 
+There's also a trust issue: keyboard and input device software has access to everything you type. Installing closed-source binaries from third parties means trusting unknown code with your most sensitive data—passwords, messages, credentials. If you're security-conscious, building from auditable source code is the better choice. This project serves as both a working tool and an example of how to build your own input device remapping on macOS.
+
 ## The Solution
 
 FootPedalOptionKey intercepts input from a specific USB foot pedal at the hardware level using macOS IOKit, blocks its native keystroke, and injects proper Option key modifier events. The result is a foot pedal that behaves exactly like holding the Option key on your keyboard.
@@ -15,7 +21,7 @@ FootPedalOptionKey intercepts input from a specific USB foot pedal at the hardwa
 ## Who This Is For
 
 - **Accessibility users** who have difficulty holding modifier keys while clicking or typing
-- **Audio/video professionals** using push-to-talk in apps like Whisper, Discord, or Zoom
+- **Audio/video professionals** using push-to-talk in apps like [Wispr Flow](https://wispr.com/) <img src="images/whispr-logo.jpeg" alt="Wispr" width="20" style="vertical-align: middle;">, Discord, or Zoom
 - **Power users** who want hands-free access to Option-click behaviors
 - **Anyone** who wants to reduce repetitive strain from awkward key combinations
 
