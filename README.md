@@ -4,7 +4,7 @@
 
 # WhisperFoot
 
-A macOS utility that transforms a USB foot pedal into an Option (⌥) key — hands-free modifier key access for accessibility, productivity, and creative workflows.
+Turn a $19 USB foot pedal into a push-to-talk button for [Wispr Flow](https://wispr.com/), Discord, Zoom, or any macOS app that uses the Option (⌥) key. WhisperFoot is an open-source macOS menu bar app that remaps a USB foot pedal to the Option modifier key at the hardware level — no closed-source drivers, no kernel extensions, no trust required. Just plug in, build from source, and go hands-free.
 
 ## The Problem
 
