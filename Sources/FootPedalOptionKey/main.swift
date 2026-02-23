@@ -63,10 +63,26 @@ class FootPedalManager {
     private var matchedDevice: IOHIDDevice?
     private var eventTap: CFMachPort?
     private var pedalConnected = false
+    private var lastEventTime: UInt64 = 0
+    private let debounceNanoseconds: UInt64 = 100_000_000  // 100ms debounce
 
     init() {
         loadConfig()
         setupEventTap()
+    }
+
+    /// Check if enough time has passed since last event (debounce)
+    private func shouldProcessEvent() -> Bool {
+        var timebase = mach_timebase_info_data_t()
+        mach_timebase_info(&timebase)
+        let now = mach_absolute_time() * UInt64(timebase.numer) / UInt64(timebase.denom)
+
+        if now - lastEventTime < debounceNanoseconds {
+            return false  // Too soon, ignore duplicate
+        }
+
+        lastEventTime = now
+        return true
     }
 
     /// Set up a CGEventTap to block the "b" key and add Option modifier while pedal is held
@@ -272,10 +288,8 @@ class FootPedalManager {
 
         // Handle keyboard usage page (0x07)
         if usagePage == kHIDPage_KeyboardOrKeypad {
-            // Any key press/release from the pedal
             let pressed = intValue != 0
-
-            if pressed != isPressed {
+            if pressed != isPressed && shouldProcessEvent() {
                 isPressed = pressed
                 injectOptionKey(keyDown: pressed)
             }
@@ -285,8 +299,7 @@ class FootPedalManager {
         // Handle button usage page (0x09)
         if usagePage == kHIDPage_Button {
             let pressed = intValue != 0
-
-            if pressed != isPressed {
+            if pressed != isPressed && shouldProcessEvent() {
                 isPressed = pressed
                 injectOptionKey(keyDown: pressed)
             }
@@ -296,8 +309,7 @@ class FootPedalManager {
         // Handle consumer usage page (0x0C) - some pedals use this
         if usagePage == kHIDPage_Consumer {
             let pressed = intValue != 0
-
-            if pressed != isPressed {
+            if pressed != isPressed && shouldProcessEvent() {
                 isPressed = pressed
                 injectOptionKey(keyDown: pressed)
             }
@@ -306,10 +318,9 @@ class FootPedalManager {
 
         // Handle generic desktop page (0x01) - for generic controls
         if usagePage == kHIDPage_GenericDesktop {
-            // Some pedals send generic desktop events
             if usage >= 0x80 && usage <= 0x83 {  // System controls
                 let pressed = intValue != 0
-                if pressed != isPressed {
+                if pressed != isPressed && shouldProcessEvent() {
                     isPressed = pressed
                     injectOptionKey(keyDown: pressed)
                 }
