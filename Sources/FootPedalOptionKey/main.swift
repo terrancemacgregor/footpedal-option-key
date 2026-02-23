@@ -2,21 +2,13 @@ import Foundation
 import IOKit
 import IOKit.hid
 import CoreGraphics
+import Cocoa
 
 // MARK: - Configuration
 
-/// iKKEGOL USB Foot Pedal typical identifiers
-/// Run `discover-pedal.sh` to find your specific device's Vendor ID and Product ID
 struct PedalConfig {
-    // Common iKKEGOL foot pedal identifiers (FS2007U1SW)
-    // These may vary - use discover-pedal.sh to find your exact values
-    static var vendorID: Int = 0x1A86   // QinHeng Electronics (common for iKKEGOL)
-    static var productID: Int = 0xE026  // USB foot pedal
-
-    // Alternative common VID/PID combinations for iKKEGOL pedals:
-    // VID: 0x0C45 (Microdia), PID: 0x7403
-    // VID: 0x1A86 (QinHeng), PID: 0xE026
-    // VID: 0x04D9 (Holtek), PID: varies
+    static var vendorID: Int = 0x1A86
+    static var productID: Int = 0xE026
 
     static let configFile = FileManager.default.homeDirectoryForCurrentUser
         .appendingPathComponent(".config/footpedal/config.json")
@@ -24,18 +16,14 @@ struct PedalConfig {
 
 // MARK: - Event Injection
 
-/// Injects Option key press/release events into the macOS event system
 func injectOptionKey(keyDown: Bool) {
     let keyCode: CGKeyCode = 58  // Left Option key
 
     guard let source = CGEventSource(stateID: .privateState) else {
-        print("Error: Could not create event source")
         return
     }
 
-    // Create a flagsChanged event - this is what modifier keys actually generate
     guard let event = CGEvent(source: source) else {
-        print("Error: Could not create event")
         return
     }
 
@@ -48,11 +36,16 @@ func injectOptionKey(keyDown: Bool) {
         event.flags = []
     }
 
-    // Post at HID level for better compatibility
     event.post(tap: .cghidEventTap)
+}
 
-    let action = keyDown ? "pressed" : "released"
-    print("Option key \(action)")
+// MARK: - Status Update Protocol
+
+protocol PedalStatusDelegate: AnyObject {
+    func pedalConnected()
+    func pedalDisconnected()
+    func pedalPressed()
+    func pedalReleased()
 }
 
 // MARK: - HID Manager
@@ -64,30 +57,30 @@ class FootPedalManager {
     private var eventTap: CFMachPort?
     private var pedalConnected = false
     private var lastEventTime: UInt64 = 0
-    private let debounceNanoseconds: UInt64 = 100_000_000  // 100ms debounce
+    private let debounceNanoseconds: UInt64 = 100_000_000
+
+    var isEnabled = true
+    weak var delegate: PedalStatusDelegate?
 
     init() {
         loadConfig()
         setupEventTap()
     }
 
-    /// Check if enough time has passed since last event (debounce)
     private func shouldProcessEvent() -> Bool {
         var timebase = mach_timebase_info_data_t()
         mach_timebase_info(&timebase)
         let now = mach_absolute_time() * UInt64(timebase.numer) / UInt64(timebase.denom)
 
         if now - lastEventTime < debounceNanoseconds {
-            return false  // Too soon, ignore duplicate
+            return false
         }
 
         lastEventTime = now
         return true
     }
 
-    /// Set up a CGEventTap to block the "b" key and add Option modifier while pedal is held
     private func setupEventTap() {
-        // Include keyboard, mouse, and flags events
         let eventMask = (1 << CGEventType.keyDown.rawValue) |
                         (1 << CGEventType.keyUp.rawValue) |
                         (1 << CGEventType.flagsChanged.rawValue) |
@@ -114,33 +107,26 @@ class FootPedalManager {
         )
 
         guard let tap = eventTap else {
-            print("Warning: Could not create event tap for blocking pedal keystrokes")
-            print("         Add app to Accessibility in System Preferences")
             return
         }
 
         let runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
-        CFRunLoopAddSource(CFRunLoopGetCurrent(), runLoopSource, .commonModes)
+        CFRunLoopAddSource(CFRunLoopGetMain(), runLoopSource, .commonModes)
         CGEvent.tapEnable(tap: tap, enable: true)
-        print("Event tap installed for blocking pedal keystrokes")
     }
 
-    /// Handle events - block "b" and add Option modifier when pedal is held
     private func handleKeyEvent(proxy: CGEventTapProxy, type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
-        guard pedalConnected else {
+        guard pedalConnected && isEnabled else {
             return Unmanaged.passUnretained(event)
         }
 
-        // For keyboard events, block "b" from the pedal
         if type == .keyDown || type == .keyUp {
             let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
-            // Key code 11 = "b" on US keyboard - block it
             if keyCode == 11 {
                 return nil
             }
         }
 
-        // If pedal is held down, add Option modifier to all events
         if isPressed {
             var flags = event.flags
             flags.insert(.maskAlternate)
@@ -150,7 +136,6 @@ class FootPedalManager {
         return Unmanaged.passUnretained(event)
     }
 
-    /// Load configuration from file if it exists
     private func loadConfig() {
         let configPath = PedalConfig.configFile
 
@@ -162,29 +147,20 @@ class FootPedalManager {
                    let pid = json["productID"] as? Int {
                     PedalConfig.vendorID = vid
                     PedalConfig.productID = pid
-                    print("Loaded config: VID=0x\(String(vid, radix: 16)), PID=0x\(String(pid, radix: 16))")
                 }
             } catch {
-                print("Warning: Could not load config file: \(error)")
+                // Use defaults
             }
         }
     }
 
     func start() {
-        print("FootPedal → Option Key Remapper")
-        print("================================")
-        print("Looking for device: VID=0x\(String(PedalConfig.vendorID, radix: 16)), PID=0x\(String(PedalConfig.productID, radix: 16))")
-        print("")
-
-        // Create HID Manager
         hidManager = IOHIDManagerCreate(kCFAllocatorDefault, IOOptionBits(kIOHIDOptionsTypeNone))
 
         guard let manager = hidManager else {
-            print("Error: Could not create HID Manager")
-            exit(1)
+            return
         }
 
-        // Set up device matching for the specific foot pedal
         let matchingDict: [String: Any] = [
             kIOHIDVendorIDKey as String: PedalConfig.vendorID,
             kIOHIDProductIDKey as String: PedalConfig.productID
@@ -192,7 +168,6 @@ class FootPedalManager {
 
         IOHIDManagerSetDeviceMatching(manager, matchingDict as CFDictionary)
 
-        // Register callbacks
         let context = Unmanaged.passUnretained(self).toOpaque()
 
         IOHIDManagerRegisterDeviceMatchingCallback(manager, { context, result, sender, device in
@@ -213,134 +188,108 @@ class FootPedalManager {
             manager.handleInput(value)
         }, context)
 
-        // Schedule with run loop
-        IOHIDManagerScheduleWithRunLoop(manager, CFRunLoopGetCurrent(), CFRunLoopMode.defaultMode.rawValue)
-
-        // Open the HID Manager
-        let openResult = IOHIDManagerOpen(manager, IOOptionBits(kIOHIDOptionsTypeNone))
-        if openResult != kIOReturnSuccess {
-            print("Error: Could not open HID Manager (code: \(openResult))")
-            print("Make sure the application has Input Monitoring permission in System Preferences.")
-            exit(1)
-        }
-
-        print("Waiting for foot pedal...")
-        print("Press Ctrl+C to exit")
-        print("")
-
-        // Run the event loop
-        CFRunLoopRun()
+        IOHIDManagerScheduleWithRunLoop(manager, CFRunLoopGetMain(), CFRunLoopMode.defaultMode.rawValue)
+        IOHIDManagerOpen(manager, IOOptionBits(kIOHIDOptionsTypeNone))
     }
 
     private func deviceConnected(_ device: IOHIDDevice) {
         matchedDevice = device
-
-        // Get device info
-        let vendorID = getDeviceProperty(device, key: kIOHIDVendorIDKey) ?? 0
-        let productID = getDeviceProperty(device, key: kIOHIDProductIDKey) ?? 0
-        let product = getDeviceStringProperty(device, key: kIOHIDProductKey) ?? "Unknown"
-        let manufacturer = getDeviceStringProperty(device, key: kIOHIDManufacturerKey) ?? "Unknown"
-
-        // Mark pedal as connected (enables "b" key blocking)
         pedalConnected = true
+        IOHIDDeviceOpen(device, IOOptionBits(kIOHIDOptionsTypeSeizeDevice))
 
-        // Try to seize the device exclusively
-        let seizeResult = IOHIDDeviceOpen(device, IOOptionBits(kIOHIDOptionsTypeSeizeDevice))
-        if seizeResult == kIOReturnSuccess {
-            print("✓ Foot pedal connected and seized exclusively!")
-        } else {
-            print("✓ Foot pedal connected (blocking 'b' key via event tap)")
+        DispatchQueue.main.async {
+            self.delegate?.pedalConnected()
         }
-
-        print("  Manufacturer: \(manufacturer)")
-        print("  Product: \(product)")
-        print("  VID: 0x\(String(vendorID, radix: 16)), PID: 0x\(String(productID, radix: 16))")
-        print("")
-        print("Ready! Step on pedal to activate Option key.")
-        print("")
     }
 
     private func deviceDisconnected(_ device: IOHIDDevice) {
-        print("✗ Foot pedal disconnected")
-
-        // Stop blocking "b" key
         pedalConnected = false
-
-        // Close the seized device
         IOHIDDeviceClose(device, IOOptionBits(kIOHIDOptionsTypeNone))
         matchedDevice = nil
 
-        // Release Option key if it was pressed when device disconnected
         if isPressed {
             injectOptionKey(keyDown: false)
             isPressed = false
         }
+
+        DispatchQueue.main.async {
+            self.delegate?.pedalDisconnected()
+        }
     }
 
     private func handleInput(_ value: IOHIDValue) {
+        guard isEnabled else { return }
+
         let element = IOHIDValueGetElement(value)
         let usagePage = IOHIDElementGetUsagePage(element)
         let usage = IOHIDElementGetUsage(element)
         let intValue = IOHIDValueGetIntegerValue(value)
 
-        // Debug output (uncomment for troubleshooting)
-        // print("Input: usagePage=\(usagePage), usage=\(usage), value=\(intValue)")
-
-        // Handle keyboard usage page (0x07)
         if usagePage == kHIDPage_KeyboardOrKeypad {
             let pressed = intValue != 0
             if pressed != isPressed && shouldProcessEvent() {
                 isPressed = pressed
                 injectOptionKey(keyDown: pressed)
+                DispatchQueue.main.async {
+                    if pressed {
+                        self.delegate?.pedalPressed()
+                    } else {
+                        self.delegate?.pedalReleased()
+                    }
+                }
             }
             return
         }
 
-        // Handle button usage page (0x09)
         if usagePage == kHIDPage_Button {
             let pressed = intValue != 0
             if pressed != isPressed && shouldProcessEvent() {
                 isPressed = pressed
                 injectOptionKey(keyDown: pressed)
+                DispatchQueue.main.async {
+                    if pressed {
+                        self.delegate?.pedalPressed()
+                    } else {
+                        self.delegate?.pedalReleased()
+                    }
+                }
             }
             return
         }
 
-        // Handle consumer usage page (0x0C) - some pedals use this
         if usagePage == kHIDPage_Consumer {
             let pressed = intValue != 0
             if pressed != isPressed && shouldProcessEvent() {
                 isPressed = pressed
                 injectOptionKey(keyDown: pressed)
-            }
-            return
-        }
-
-        // Handle generic desktop page (0x01) - for generic controls
-        if usagePage == kHIDPage_GenericDesktop {
-            if usage >= 0x80 && usage <= 0x83 {  // System controls
-                let pressed = intValue != 0
-                if pressed != isPressed && shouldProcessEvent() {
-                    isPressed = pressed
-                    injectOptionKey(keyDown: pressed)
+                DispatchQueue.main.async {
+                    if pressed {
+                        self.delegate?.pedalPressed()
+                    } else {
+                        self.delegate?.pedalReleased()
+                    }
                 }
             }
             return
         }
-    }
 
-    private func getDeviceProperty(_ device: IOHIDDevice, key: String) -> Int? {
-        guard let value = IOHIDDeviceGetProperty(device, key as CFString) else {
-            return nil
+        if usagePage == kHIDPage_GenericDesktop {
+            if usage >= 0x80 && usage <= 0x83 {
+                let pressed = intValue != 0
+                if pressed != isPressed && shouldProcessEvent() {
+                    isPressed = pressed
+                    injectOptionKey(keyDown: pressed)
+                    DispatchQueue.main.async {
+                        if pressed {
+                            self.delegate?.pedalPressed()
+                        } else {
+                            self.delegate?.pedalReleased()
+                        }
+                    }
+                }
+            }
+            return
         }
-        return (value as? NSNumber)?.intValue
-    }
-
-    private func getDeviceStringProperty(_ device: IOHIDDevice, key: String) -> String? {
-        guard let value = IOHIDDeviceGetProperty(device, key as CFString) else {
-            return nil
-        }
-        return value as? String
     }
 
     func stop() {
@@ -354,20 +303,121 @@ class FootPedalManager {
     }
 }
 
-// MARK: - Signal Handling
+// MARK: - App Delegate with Menu Bar
 
-var manager: FootPedalManager?
+class AppDelegate: NSObject, NSApplicationDelegate, PedalStatusDelegate {
+    var statusItem: NSStatusItem!
+    var pedalManager: FootPedalManager!
+    var isPedalConnected = false
 
-func signalHandler(signal: Int32) {
-    print("\nShutting down...")
-    manager?.stop()
-    exit(0)
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        // Create status bar item
+        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+
+        updateStatusIcon(connected: false, pressed: false)
+
+        // Create menu
+        let menu = NSMenu()
+
+        let statusMenuItem = NSMenuItem(title: "Pedal: Disconnected", action: nil, keyEquivalent: "")
+        statusMenuItem.tag = 100
+        menu.addItem(statusMenuItem)
+
+        menu.addItem(NSMenuItem.separator())
+
+        let enableItem = NSMenuItem(title: "Enabled", action: #selector(toggleEnabled), keyEquivalent: "e")
+        enableItem.state = .on
+        enableItem.tag = 101
+        menu.addItem(enableItem)
+
+        menu.addItem(NSMenuItem.separator())
+
+        menu.addItem(NSMenuItem(title: "Quit", action: #selector(quit), keyEquivalent: "q"))
+
+        statusItem.menu = menu
+
+        // Start pedal manager
+        pedalManager = FootPedalManager()
+        pedalManager.delegate = self
+        pedalManager.start()
+    }
+
+    func updateStatusIcon(connected: Bool, pressed: Bool) {
+        if let button = statusItem.button {
+            // Use SF Symbols for cleaner look
+            let symbolName: String
+            if pressed {
+                symbolName = "foot.fill"
+            } else if connected {
+                symbolName = "circle.fill"
+            } else {
+                symbolName = "circle"
+            }
+
+            if let image = NSImage(systemSymbolName: symbolName, accessibilityDescription: "Foot Pedal") {
+                image.isTemplate = true  // Adapts to menu bar appearance
+                button.image = image
+                button.title = ""
+            } else {
+                // Fallback for older macOS
+                if pressed {
+                    button.title = "●"
+                } else if connected {
+                    button.title = "◉"
+                } else {
+                    button.title = "○"
+                }
+                button.image = nil
+            }
+        }
+    }
+
+    func updateMenu() {
+        if let menu = statusItem.menu,
+           let statusItem = menu.item(withTag: 100) {
+            statusItem.title = isPedalConnected ? "Pedal: Connected" : "Pedal: Disconnected"
+        }
+    }
+
+    @objc func toggleEnabled() {
+        pedalManager.isEnabled.toggle()
+        if let menu = statusItem.menu,
+           let enableItem = menu.item(withTag: 101) {
+            enableItem.state = pedalManager.isEnabled ? .on : .off
+        }
+    }
+
+    @objc func quit() {
+        pedalManager.stop()
+        NSApp.terminate(nil)
+    }
+
+    // MARK: - PedalStatusDelegate
+
+    func pedalConnected() {
+        isPedalConnected = true
+        updateStatusIcon(connected: true, pressed: false)
+        updateMenu()
+    }
+
+    func pedalDisconnected() {
+        isPedalConnected = false
+        updateStatusIcon(connected: false, pressed: false)
+        updateMenu()
+    }
+
+    func pedalPressed() {
+        updateStatusIcon(connected: true, pressed: true)
+    }
+
+    func pedalReleased() {
+        updateStatusIcon(connected: true, pressed: false)
+    }
 }
 
 // MARK: - Main
 
-signal(SIGINT, signalHandler)
-signal(SIGTERM, signalHandler)
-
-manager = FootPedalManager()
-manager?.start()
+let app = NSApplication.shared
+let delegate = AppDelegate()
+app.delegate = delegate
+app.run()
