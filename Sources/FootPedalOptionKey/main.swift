@@ -344,15 +344,25 @@ class AppDelegate: NSObject, NSApplicationDelegate, PedalStatusDelegate {
 
     func updateStatusIcon(connected: Bool, pressed: Bool) {
         if let button = statusItem.button {
-            // Always show foot icon, filled when pressed or connected
-            let symbolName = (pressed || connected) ? "foot.fill" : "foot"
+            let symbolName: String
+            if pressed {
+                symbolName = "foot.fill"
+            } else {
+                symbolName = "foot"
+            }
 
             if let image = NSImage(systemSymbolName: symbolName, accessibilityDescription: "Foot Pedal") {
-                image.isTemplate = true
+                image.isTemplate = !pressed  // When pressed, show as solid (not template)
                 button.image = image
                 button.title = ""
+
+                // Make it visually pop when pressed
+                if pressed {
+                    button.contentTintColor = .controlAccentColor
+                } else {
+                    button.contentTintColor = nil
+                }
             } else {
-                // Fallback
                 button.title = "🦶"
                 button.image = nil
             }
