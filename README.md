@@ -1,3 +1,7 @@
+<p align="center">
+  <video src="images/whisperfoot.mp4" width="600" controls></video>
+</p>
+
 # WhisperFoot
 
 <p align="center">
@@ -7,13 +11,6 @@
 <p align="center">
   <strong>A macOS utility that transforms a USB foot pedal into an Option (⌥) key</strong><br>
   Hands-free modifier key access for accessibility, productivity, and creative workflows.
-</p>
-
-<p align="center">
-  <a href="images/whisperfoot.mp4">
-    <img src="images/footpedal-iKKEGOL.png" alt="Watch demo — click to play" width="280">
-  </a><br>
-  <em>Click to watch the demo video</em>
 </p>
 
 ## The Problem
