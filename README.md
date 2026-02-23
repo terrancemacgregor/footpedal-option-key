@@ -74,8 +74,8 @@ WhisperFoot intercepts input from a specific USB foot pedal at the hardware leve
 ### 1. Clone and Build
 
 ```bash
-git clone https://github.com/terrancemacgregor/footpedal-option-key.git
-cd footpedal-option-key
+git clone https://github.com/terrancemacgregor/whisperpedal.git
+cd whisperpedal
 ./scripts/streamdeck/build-and-install.sh
 ```
 
