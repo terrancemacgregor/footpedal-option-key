@@ -128,9 +128,10 @@ class FootPedalManager {
             return Unmanaged.passUnretained(event)
         }
 
-        // Block "b" key (keycode 11) only when pedal is connected and enabled
-        // The pedal hardware sends "b" as its native keystroke
-        if type == .keyDown || type == .keyUp {
+        // Block "b" key (keycode 11) only while the pedal is physically pressed.
+        // The pedal hardware sends "b" as its native keystroke — we know it's from
+        // the pedal (not the keyboard) because isPressed is set by the HID callback.
+        if isPressed && (type == .keyDown || type == .keyUp) {
             let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
             if keyCode == 11 {
                 return nil
