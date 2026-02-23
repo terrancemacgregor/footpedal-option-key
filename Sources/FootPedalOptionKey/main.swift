@@ -344,29 +344,16 @@ class AppDelegate: NSObject, NSApplicationDelegate, PedalStatusDelegate {
 
     func updateStatusIcon(connected: Bool, pressed: Bool) {
         if let button = statusItem.button {
-            // Use SF Symbols for cleaner look
-            let symbolName: String
-            if pressed {
-                symbolName = "foot.fill"
-            } else if connected {
-                symbolName = "circle.fill"
-            } else {
-                symbolName = "circle"
-            }
+            // Always show foot icon, filled when pressed or connected
+            let symbolName = (pressed || connected) ? "foot.fill" : "foot"
 
             if let image = NSImage(systemSymbolName: symbolName, accessibilityDescription: "Foot Pedal") {
-                image.isTemplate = true  // Adapts to menu bar appearance
+                image.isTemplate = true
                 button.image = image
                 button.title = ""
             } else {
-                // Fallback for older macOS
-                if pressed {
-                    button.title = "●"
-                } else if connected {
-                    button.title = "◉"
-                } else {
-                    button.title = "○"
-                }
+                // Fallback
+                button.title = "🦶"
                 button.image = nil
             }
         }

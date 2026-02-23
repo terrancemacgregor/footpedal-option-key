@@ -179,7 +179,14 @@ This approach works at the correct abstraction layer—below the keyboard driver
 
 ### Option key not working / "b" still appears
 
-The app needs Accessibility permissions. Go to System Settings → Privacy & Security → Accessibility and ensure FootPedalOptionKey.app is listed and enabled.
+The app needs Accessibility permissions. **This must be re-done after every reinstall.**
+
+1. Go to **System Settings → Privacy & Security → Accessibility**
+2. If FootPedalOptionKey.app is already listed, **remove it first**
+3. Click **+** and add `/Applications/FootPedalOptionKey.app`
+4. Ensure it's toggled **ON**
+
+macOS ties permissions to the app signature, so reinstalling invalidates previous grants.
 
 ### App not starting at login
 
