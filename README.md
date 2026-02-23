@@ -1,10 +1,20 @@
-# FootPedalOptionKey
+# WhisperFoot
 
 <p align="center">
-  <img src="images/footpedal-iKKEGOL.png" alt="iKKEGOL USB Foot Pedal" width="400">
+  <img src="images/whisperfoot-logo.jpg" alt="WhisperFoot — foot pressing a voice pedal" width="360">
 </p>
 
-A macOS utility that transforms a USB foot pedal into an Option (⌥) key, enabling hands-free modifier key access for accessibility, productivity, and creative workflows.
+<p align="center">
+  <strong>A macOS utility that transforms a USB foot pedal into an Option (⌥) key</strong><br>
+  Hands-free modifier key access for accessibility, productivity, and creative workflows.
+</p>
+
+<p align="center">
+  <a href="images/whisperfoot.mp4">
+    <img src="images/footpedal-iKKEGOL.png" alt="Watch demo — click to play" width="280">
+  </a><br>
+  <em>Click to watch the demo video</em>
+</p>
 
 ## The Problem
 
@@ -16,12 +26,12 @@ There's also a trust issue: keyboard and input device software has access to eve
 
 ## The Solution
 
-FootPedalOptionKey intercepts input from a specific USB foot pedal at the hardware level using macOS IOKit, blocks its native keystroke, and injects proper Option key modifier events. The result is a foot pedal that behaves exactly like holding the Option key on your keyboard.
+WhisperFoot intercepts input from a specific USB foot pedal at the hardware level using macOS IOKit, blocks its native keystroke, and injects proper Option key modifier events. The result is a foot pedal that behaves exactly like holding the Option key on your keyboard.
 
 ## Who This Is For
 
 - **Accessibility users** who have difficulty holding modifier keys while clicking or typing
-- **Audio/video professionals** using push-to-talk in apps like [Wispr Flow](https://wispr.com/) <img src="images/whispr-logo.jpeg" alt="Wispr" width="20" style="vertical-align: middle;">, Discord, or Zoom
+- **Audio/video professionals** using push-to-talk in apps like <img src="images/whispr-logo.jpeg" alt="Wispr" width="18" style="vertical-align: middle;"> [Wispr Flow](https://wispr.com/), Discord, or Zoom
 - **Power users** who want hands-free access to Option-click behaviors
 - **Anyone** who wants to reduce repetitive strain from awkward key combinations
 
@@ -60,14 +70,16 @@ FootPedalOptionKey intercepts input from a specific USB foot pedal at the hardwa
 ### 1. Clone and Build
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/footpedal-option-key.git
+git clone https://github.com/terrancemacgregor/footpedal-option-key.git
 cd footpedal-option-key
-./scripts/build.sh
+./scripts/streamdeck/build-and-install.sh
 ```
+
+This single script compiles, bundles, code-signs, installs to `/Applications`, and starts the service. It opens a Terminal window to show progress.
 
 ### 2. Configure Your Pedal (if not using iKKEGOL)
 
-For iKKEGOL pedals, skip this step—defaults work automatically.
+For iKKEGOL pedals, skip this step — defaults work automatically.
 
 For other pedals, discover your device's USB IDs:
 
@@ -81,28 +93,19 @@ Then configure:
 ./scripts/configure-pedal.sh 0xVENDOR_ID 0xPRODUCT_ID
 ```
 
-### 3. Install
-
-```bash
-./scripts/install.sh
-```
-
-### 4. Grant Permissions
+### 3. Grant Permissions
 
 The app requires Accessibility permissions to inject keyboard events.
 
 1. Open **System Settings → Privacy & Security → Accessibility**
 2. Click **+**
-3. Navigate to `/Applications/FootPedalOptionKey.app`
+3. Navigate to `/Applications/WhisperFoot.app`
 4. Ensure it's toggled **ON**
+5. Re-run `./scripts/streamdeck/build-and-install.sh` to restart the service
 
-### 5. Start
+> **Note:** macOS ties permissions to the app signature. After every reinstall, you must remove and re-add the app in Accessibility settings, then restart it.
 
-```bash
-./scripts/start.sh
-```
-
-The app will start automatically on future logins.
+The app will start automatically on future logins via LaunchAgent.
 
 ## Usage
 
@@ -140,14 +143,12 @@ To find your pedal's IDs, run `./scripts/discover-pedal.sh`.
 
 | Script | Purpose |
 |--------|---------|
-| `build.sh` | Compile and create app bundle |
-| `install.sh` | Install to /Applications and set up LaunchAgent |
-| `start.sh` | Start the background service |
-| `stop.sh` | Stop the background service |
-| `status.sh` | Check service status and view logs |
-| `uninstall.sh` | Remove app, LaunchAgent, and optionally config |
-| `discover-pedal.sh` | Find USB Vendor/Product IDs for your pedal |
-| `configure-pedal.sh` | Save pedal IDs to config file |
+| `scripts/streamdeck/build-and-install.sh` | Build, install, and start WhisperFoot (opens Terminal) |
+| `scripts/streamdeck/stop-and-uninstall.sh` | Stop, uninstall, and clean up everything (opens Terminal) |
+| `scripts/discover-pedal.sh` | Find USB Vendor/Product IDs for your pedal |
+| `scripts/configure-pedal.sh` | Save pedal IDs to config file |
+
+The StreamDeck scripts are designed to be triggered from an Elgato Stream Deck button but work equally well from the command line. They detect whether they're running in a terminal and open one if needed.
 
 ## Logs
 
@@ -182,11 +183,12 @@ This approach works at the correct abstraction layer—below the keyboard driver
 The app needs Accessibility permissions. **This must be re-done after every reinstall.**
 
 1. Go to **System Settings → Privacy & Security → Accessibility**
-2. If FootPedalOptionKey.app is already listed, **remove it first**
-3. Click **+** and add `/Applications/FootPedalOptionKey.app`
+2. If WhisperFoot.app is already listed, **remove it first**
+3. Click **+** and add `/Applications/WhisperFoot.app`
 4. Ensure it's toggled **ON**
+5. Re-run `./scripts/streamdeck/build-and-install.sh` to restart the service
 
-macOS ties permissions to the app signature, so reinstalling invalidates previous grants.
+macOS ties permissions to the app signature, so reinstalling invalidates previous grants. The app must be restarted after granting permissions.
 
 ### App not starting at login
 
@@ -195,7 +197,7 @@ Verify the LaunchAgent is loaded:
 launchctl list | grep footpedal
 ```
 
-If not listed, run `./scripts/start.sh`.
+If not listed, run `./scripts/streamdeck/build-and-install.sh`.
 
 ### Double events / erratic behavior
 
@@ -204,10 +206,10 @@ Some pedals expose multiple HID interfaces. The app includes 100ms debouncing to
 ## Uninstalling
 
 ```bash
-./scripts/uninstall.sh
+./scripts/streamdeck/stop-and-uninstall.sh
 ```
 
-Then remove the app from System Settings → Privacy & Security → Accessibility.
+This removes the app from `/Applications`, the LaunchAgent, log files, config, and Accessibility permissions.
 
 ## Contributing
 
@@ -220,7 +222,7 @@ Contributions are welcome. Please:
 For bug reports, include:
 - macOS version
 - Pedal make/model
-- Output of `./scripts/status.sh`
+- Output of `/tmp/footpedal.log` and `/tmp/footpedal.error.log`
 
 ## License
 
