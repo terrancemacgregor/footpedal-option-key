@@ -52,7 +52,7 @@ protocol PedalStatusDelegate: AnyObject {
 
 class FootPedalManager {
     private var hidManager: IOHIDManager?
-    private var isPressed = false
+    private(set) var isPressed = false
     private var matchedDevice: IOHIDDevice?
     private var eventTap: CFMachPort?
     private var pedalConnected = false
@@ -351,47 +351,65 @@ class AppDelegate: NSObject, NSApplicationDelegate, PedalStatusDelegate {
         pedalManager.start()
     }
 
-    func updateStatusIcon(connected: Bool, pressed: Bool) {
+    func updateStatusIcon(connected: Bool, pressed: Bool, enabled: Bool = true) {
         if let button = statusItem.button {
-            let imageName = pressed ? "footprint-on" : "footprint-off"
+            let showPressed = pressed && enabled
+            let imageName = showPressed ? "footprint-on" : "footprint-off"
             let bundle = Bundle.main
 
             if let imagePath = bundle.pathForImageResource(imageName),
                let image = NSImage(contentsOfFile: imagePath) {
                 image.size = NSSize(width: 18, height: 18)
-                image.isTemplate = !pressed
+                image.isTemplate = !showPressed
                 button.image = image
                 button.title = ""
                 button.contentTintColor = nil
             } else {
                 // Fallback to SF Symbols
-                let symbolName = pressed ? "foot.fill" : "foot"
+                let symbolName = showPressed ? "foot.fill" : "foot"
                 if let image = NSImage(systemSymbolName: symbolName, accessibilityDescription: "Foot Pedal") {
-                    image.isTemplate = !pressed
+                    image.isTemplate = !showPressed
                     button.image = image
                     button.title = ""
-                    button.contentTintColor = pressed ? .controlAccentColor : nil
+                    button.contentTintColor = showPressed ? .controlAccentColor : nil
                 } else {
                     button.title = "🦶"
                     button.image = nil
                 }
             }
+
+            button.alphaValue = enabled ? 1.0 : 0.3
         }
     }
 
     func updateMenu() {
         if let menu = statusItem.menu,
            let statusItem = menu.item(withTag: 100) {
-            statusItem.title = isPedalConnected ? "Pedal: Connected" : "Pedal: Disconnected"
+            if !pedalManager.isEnabled {
+                statusItem.title = "Pedal: Disabled"
+            } else {
+                statusItem.title = isPedalConnected ? "Pedal: Connected" : "Pedal: Disconnected"
+            }
         }
     }
 
     @objc func toggleEnabled() {
+        let wasPressed = pedalManager.isPressed
         pedalManager.isEnabled.toggle()
+        let enabled = pedalManager.isEnabled
+
+        // Release Option key if disabling while pedal is held
+        if !enabled && wasPressed {
+            injectOptionKey(keyDown: false)
+        }
+
         if let menu = statusItem.menu,
            let enableItem = menu.item(withTag: 101) {
-            enableItem.state = pedalManager.isEnabled ? .on : .off
+            enableItem.state = enabled ? .on : .off
         }
+
+        updateStatusIcon(connected: isPedalConnected, pressed: false, enabled: enabled)
+        updateMenu()
     }
 
     @objc func quit() {
@@ -403,22 +421,22 @@ class AppDelegate: NSObject, NSApplicationDelegate, PedalStatusDelegate {
 
     func pedalConnected() {
         isPedalConnected = true
-        updateStatusIcon(connected: true, pressed: false)
+        updateStatusIcon(connected: true, pressed: false, enabled: pedalManager.isEnabled)
         updateMenu()
     }
 
     func pedalDisconnected() {
         isPedalConnected = false
-        updateStatusIcon(connected: false, pressed: false)
+        updateStatusIcon(connected: false, pressed: false, enabled: pedalManager.isEnabled)
         updateMenu()
     }
 
     func pedalPressed() {
-        updateStatusIcon(connected: true, pressed: true)
+        updateStatusIcon(connected: true, pressed: true, enabled: pedalManager.isEnabled)
     }
 
     func pedalReleased() {
-        updateStatusIcon(connected: true, pressed: false)
+        updateStatusIcon(connected: true, pressed: false, enabled: pedalManager.isEnabled)
     }
 }
 
