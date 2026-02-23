@@ -9,7 +9,7 @@ let package = Package(
     targets: [
         .executableTarget(
             name: "FootPedalOptionKey",
-            path: "Sources/FootPedalOptionKey"
+            path: "sources/FootPedalOptionKey"
         )
     ]
 )

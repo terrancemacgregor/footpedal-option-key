@@ -7,8 +7,8 @@ import Cocoa
 // MARK: - Configuration
 
 struct PedalConfig {
-    static var vendorID: Int = 0x1A86
-    static var productID: Int = 0xE026
+    static var vendorID: Int = 0x3553   // 13651 decimal - FootSwitch
+    static var productID: Int = 0xB001  // 45057 decimal - FootSwitch
 
     static let configFile = FileManager.default.homeDirectoryForCurrentUser
         .appendingPathComponent(".config/footpedal/config.json")
@@ -116,15 +116,24 @@ class FootPedalManager {
     }
 
     private func handleKeyEvent(proxy: CGEventTapProxy, type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
-        guard pedalConnected && isEnabled else {
+        // Re-enable tap if it was disabled by timeout
+        if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
+            if let tap = eventTap {
+                CGEvent.tapEnable(tap: tap, enable: true)
+            }
             return Unmanaged.passUnretained(event)
         }
 
+        // ALWAYS block "b" key (keycode 11) - the pedal hardware sends this
         if type == .keyDown || type == .keyUp {
             let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
             if keyCode == 11 {
                 return nil
             }
+        }
+
+        guard pedalConnected && isEnabled else {
+            return Unmanaged.passUnretained(event)
         }
 
         if isPressed {
@@ -344,27 +353,28 @@ class AppDelegate: NSObject, NSApplicationDelegate, PedalStatusDelegate {
 
     func updateStatusIcon(connected: Bool, pressed: Bool) {
         if let button = statusItem.button {
-            let symbolName: String
-            if pressed {
-                symbolName = "foot.fill"
-            } else {
-                symbolName = "foot"
-            }
+            let imageName = pressed ? "footprint-on" : "footprint-off"
+            let bundle = Bundle.main
 
-            if let image = NSImage(systemSymbolName: symbolName, accessibilityDescription: "Foot Pedal") {
-                image.isTemplate = !pressed  // When pressed, show as solid (not template)
+            if let imagePath = bundle.pathForImageResource(imageName),
+               let image = NSImage(contentsOfFile: imagePath) {
+                image.size = NSSize(width: 18, height: 18)
+                image.isTemplate = !pressed
                 button.image = image
                 button.title = ""
-
-                // Make it visually pop when pressed
-                if pressed {
-                    button.contentTintColor = .controlAccentColor
-                } else {
-                    button.contentTintColor = nil
-                }
+                button.contentTintColor = nil
             } else {
-                button.title = "🦶"
-                button.image = nil
+                // Fallback to SF Symbols
+                let symbolName = pressed ? "foot.fill" : "foot"
+                if let image = NSImage(systemSymbolName: symbolName, accessibilityDescription: "Foot Pedal") {
+                    image.isTemplate = !pressed
+                    button.image = image
+                    button.title = ""
+                    button.contentTintColor = pressed ? .controlAccentColor : nil
+                } else {
+                    button.title = "🦶"
+                    button.image = nil
+                }
             }
         }
     }
