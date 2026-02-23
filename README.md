@@ -1,11 +1,14 @@
-<p align="center">
-  <video src="https://github.com/terrancemacgregor/footpedal-option-key/raw/main/images/whisperfoot.mp4" width="600" controls></video>
-</p>
-
 # WhisperFoot
 
 <p align="center">
   <img src="images/whisperfoot-logo.jpg" alt="WhisperFoot — foot pressing a voice pedal" width="360">
+</p>
+
+<p align="center">
+  <a href="https://github.com/terrancemacgregor/footpedal-option-key/blob/main/images/whisperfoot.mp4">
+    <img src="images/footpedal-iKKEGOL.png" alt="Watch demo video" width="280">
+  </a><br>
+  <em>Click to watch the demo video</em>
 </p>
 
 <p align="center">
