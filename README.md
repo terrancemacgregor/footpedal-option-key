@@ -20,7 +20,7 @@
 
 Many workflows benefit from holding the Option key while performing other actions—Option-click to access alternate menu items, Option-drag to duplicate files, or push-to-talk in voice applications. But holding a modifier key while simultaneously using your mouse or keyboard can be awkward or impossible for some users.
 
-USB foot pedals are inexpensive (~$15) and widely available, but they typically only send a single keystroke (like "b") rather than acting as a proper modifier key. macOS doesn't natively support remapping arbitrary USB devices to modifier keys, and existing tools like Karabiner-Elements work at the keyboard level, not the USB device level.
+USB foot pedals are inexpensive (~$19) and widely available, but they typically only send a single keystroke (like "b") rather than acting as a proper modifier key. macOS doesn't natively support remapping arbitrary USB devices to modifier keys, and existing tools like Karabiner-Elements work at the keyboard level, not the USB device level.
 
 There's also a trust issue: keyboard and input device software has access to everything you type. Installing closed-source binaries from third parties means trusting unknown code with your most sensitive data—passwords, messages, credentials. If you're security-conscious, building from auditable source code is the better choice. This project serves as both a working tool and an example of how to build your own input device remapping on macOS.
 
@@ -43,9 +43,9 @@ WhisperFoot intercepts input from a specific USB foot pedal at the hardware leve
 
 ## Supported Hardware
 
-**Primary:** iKKEGOL USB Foot Pedal Switch (Model FS2007U1SW)
+**Primary:** [iKKEGOL USB Foot Pedal Switch](https://www.amazon.com/iKKEGOL-Upgraded-Optical-Computer-Keyboard/dp/B088TQXYX2) (Model FS2007U1SW)
 - Single pedal, USB HID device
-- Available on Amazon for ~$15
+- Available on Amazon for ~$19
 
 **Other pedals** may work if they present as USB HID devices. Use the included discovery script to find your pedal's Vendor ID and Product ID.
 
