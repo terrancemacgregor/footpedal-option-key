@@ -18,7 +18,15 @@ USB foot pedals are inexpensive (~$19) and widely available, but they typically 
   </a>
 </p>
 
-There's also a trust issue: keyboard and input device software has access to everything you type. The iKKEGOL pedal comes with its own [Windows-only configuration software](https://www.ikkegol.com/downloads.html)—but do you really want to install closed-source binaries from third parties that have access to your most sensitive data? Passwords, messages, credentials. If you're security-conscious, building from auditable source code is the better choice. This project serves as both a working tool and an example of how to build your own input device remapping on macOS.
+There's also a trust issue: keyboard and input device software has access to everything you type. The iKKEGOL pedal comes with its own [configuration software](https://www.ikkegol.com/downloads.html)—but do you really want to install closed-source binaries from third parties that have access to your most sensitive data? Passwords, messages, credentials.
+
+<p align="center">
+  <a href="https://www.ikkegol.com/downloads.html">
+    <img src="images/download_software.png" alt="iKKEGOL download software page" width="600">
+  </a>
+</p>
+
+If you're security-conscious, building from auditable source code is the better choice. This project serves as both a working tool and an example of how to build your own input device remapping on macOS.
 
 ## The Solution
 
