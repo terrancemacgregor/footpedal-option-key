@@ -58,6 +58,8 @@ class FootPedalManager {
     private var pedalConnected = false
     private var lastEventTime: UInt64 = 0
     private let debounceNanoseconds: UInt64 = 100_000_000
+    private var lastPedalHIDEventTime: UInt64 = 0
+    private let pedalKeystrokeWindowNanoseconds: UInt64 = 150_000_000  // 150ms
 
     var isEnabled = true
     weak var delegate: PedalStatusDelegate?
@@ -67,10 +69,14 @@ class FootPedalManager {
         setupEventTap()
     }
 
-    private func shouldProcessEvent() -> Bool {
+    private func currentNanoseconds() -> UInt64 {
         var timebase = mach_timebase_info_data_t()
         mach_timebase_info(&timebase)
-        let now = mach_absolute_time() * UInt64(timebase.numer) / UInt64(timebase.denom)
+        return mach_absolute_time() * UInt64(timebase.numer) / UInt64(timebase.denom)
+    }
+
+    private func shouldProcessEvent() -> Bool {
+        let now = currentNanoseconds()
 
         if now - lastEventTime < debounceNanoseconds {
             return false
@@ -78,6 +84,11 @@ class FootPedalManager {
 
         lastEventTime = now
         return true
+    }
+
+    private func isWithinPedalKeystrokeWindow() -> Bool {
+        let now = currentNanoseconds()
+        return now - lastPedalHIDEventTime < pedalKeystrokeWindowNanoseconds
     }
 
     private func setupEventTap() {
@@ -128,10 +139,11 @@ class FootPedalManager {
             return Unmanaged.passUnretained(event)
         }
 
-        // Block "b" key (keycode 11) only while the pedal is physically pressed.
-        // The pedal hardware sends "b" as its native keystroke — we know it's from
-        // the pedal (not the keyboard) because isPressed is set by the HID callback.
-        if isPressed && (type == .keyDown || type == .keyUp) {
+        // Block "b" key (keycode 11) when the pedal is pressed OR within 150ms of
+        // any pedal HID event. The timing window handles the race condition where a
+        // rapid tap causes isPressed to flip back to false before the pedal's "b"
+        // keystroke reaches the event tap.
+        if (isPressed || isWithinPedalKeystrokeWindow()) && (type == .keyDown || type == .keyUp) {
             let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
             if keyCode == 11 {
                 return nil
@@ -235,6 +247,10 @@ class FootPedalManager {
         let usagePage = IOHIDElementGetUsagePage(element)
         let usage = IOHIDElementGetUsage(element)
         let intValue = IOHIDValueGetIntegerValue(value)
+
+        // Record timestamp for every pedal HID event so the event tap can
+        // block the pedal's "b" keystroke even on rapid taps.
+        lastPedalHIDEventTime = currentNanoseconds()
 
         if usagePage == kHIDPage_KeyboardOrKeypad {
             let pressed = intValue != 0
