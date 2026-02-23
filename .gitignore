@@ -1,0 +1,6 @@
+.build/
+.swiftpm/
+FootPedalOptionKey.app/
+*.xcodeproj/
+xcuserdata/
+.DS_Store
