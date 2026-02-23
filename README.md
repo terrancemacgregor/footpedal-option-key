@@ -1,20 +1,10 @@
+<p align="center">
+  <img src="images/whisperpedal-banner.jpg" alt="WhisperFoot — hands-free foot pedal for voice and productivity" width="700">
+</p>
+
 # WhisperFoot
 
-<p align="center">
-  <img src="images/whisperfoot-logo.jpg" alt="WhisperFoot — foot pressing a voice pedal" width="360">
-</p>
-
-<p align="center">
-  <a href="https://github.com/terrancemacgregor/footpedal-option-key/blob/main/images/whisperfoot.mp4">
-    <img src="images/footpedal-iKKEGOL.png" alt="Watch demo video" width="280">
-  </a><br>
-  <em>Click to watch the demo video</em>
-</p>
-
-<p align="center">
-  <strong>A macOS utility that transforms a USB foot pedal into an Option (⌥) key</strong><br>
-  Hands-free modifier key access for accessibility, productivity, and creative workflows.
-</p>
+A macOS utility that transforms a USB foot pedal into an Option (⌥) key — hands-free modifier key access for accessibility, productivity, and creative workflows.
 
 ## The Problem
 
@@ -31,7 +21,7 @@ WhisperFoot intercepts input from a specific USB foot pedal at the hardware leve
 ## Who This Is For
 
 - **Accessibility users** who have difficulty holding modifier keys while clicking or typing
-- **Audio/video professionals** using push-to-talk in apps like <img src="images/whispr-logo.jpeg" alt="Wispr" width="18" style="vertical-align: middle;"> [Wispr Flow](https://wispr.com/), Discord, or Zoom
+- **Audio/video professionals** using push-to-talk in apps like [Wispr Flow](https://wispr.com/), Discord, or Zoom
 - **Power users** who want hands-free access to Option-click behaviors
 - **Anyone** who wants to reduce repetitive strain from awkward key combinations
 
