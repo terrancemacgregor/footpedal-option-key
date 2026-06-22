@@ -100,8 +100,11 @@ cat > "$APP_BUNDLE/Contents/Info.plist" << 'EOF'
 EOF
 echo "  Generated Info.plist"
 
-codesign --force --deep --sign "Terrance-MacGregor-Local-CodeSign" "$APP_BUNDLE"
-echo "  Code signed app bundle"
+# Default to ad-hoc signing ("-") so the build works on any machine without a
+# named identity. Override with CODESIGN_IDENTITY to use your own certificate.
+CODESIGN_IDENTITY="${CODESIGN_IDENTITY:--}"
+codesign --force --deep --sign "$CODESIGN_IDENTITY" "$APP_BUNDLE"
+echo "  Code signed app bundle (identity: $CODESIGN_IDENTITY)"
 echo ""
 
 # ---- Install ----
