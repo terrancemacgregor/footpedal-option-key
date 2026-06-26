@@ -91,16 +91,21 @@ class FootPedalManager {
         return now - lastPedalHIDEventTime < pedalKeystrokeWindowNanoseconds
     }
 
+
     private func setupEventTap() {
-        let eventMask = (1 << CGEventType.keyDown.rawValue) |
-                        (1 << CGEventType.keyUp.rawValue) |
-                        (1 << CGEventType.flagsChanged.rawValue) |
-                        (1 << CGEventType.leftMouseDown.rawValue) |
+        let keyboardMask = (1 << CGEventType.keyDown.rawValue) |
+                           (1 << CGEventType.keyUp.rawValue) |
+                           (1 << CGEventType.flagsChanged.rawValue)
+        
+        let mouseMask = (1 << CGEventType.leftMouseDown.rawValue) |
                         (1 << CGEventType.leftMouseUp.rawValue) |
                         (1 << CGEventType.rightMouseDown.rawValue) |
-                        (1 << CGEventType.rightMouseUp.rawValue) |
-                        (1 << CGEventType.leftMouseDragged.rawValue) |
-                        (1 << CGEventType.rightMouseDragged.rawValue)
+                        (1 << CGEventType.rightMouseUp.rawValue)
+        
+        let mouseDragMask = (1 << CGEventType.leftMouseDragged.rawValue) |
+                            (1 << CGEventType.rightMouseDragged.rawValue)
+        
+        let eventMask = keyboardMask | mouseMask | mouseDragMask
 
         let selfPtr = Unmanaged.passUnretained(self).toOpaque()
 
